@@ -2,9 +2,10 @@ import numpy as np
 import tensorflow as tf
 from keras import layers
 from keras.layers import Conv2D, BatchNormalization, Activation, Add
-from keras.layers import Input, ZeroPadding2D, MaxPooling2D, AveragePooling2D, Flatten, Dense, Concatenate,UpSampling2D
+from keras.layers import Input, ZeroPadding2D, MaxPooling2D, AveragePooling2D, Flatten, Dense, Concatenate,UpSampling2D, Lambda
 from keras.initializers import glorot_uniform
 from keras.models import Model
+import keras as K
 
 
 
@@ -168,12 +169,10 @@ def model_U_ResNet50_Centerline_Localheight():
         x3 = identity_block(x3, f=3, filters=[256, 256, 1024], stage=4, block="e")
         x3 = identity_block(x3, f=3, filters=[256, 256, 1024], stage=4, block="f")
 
-        x3_take=AveragePooling2D(pool_size=(2, 2), padding="same")(x3)
-
         # stage5
         x4 = convolutional_block(x3, f=3, filters=[512, 512, 2048], stage=5, block="a", s=2)
         x4 = identity_block(x4, f=3, filters=[512, 512, 2048], stage=5, block="b")
-        x4_take = identity_block(x4, f=3, filters=[512, 512, 2048], stage=5, block="c")
+        x4 = identity_block(x4, f=3, filters=[512, 512, 2048], stage=5, block="c")
 
         # 均值池化层
         x4 = AveragePooling2D(pool_size=(2, 2), padding="same")(x4)
@@ -188,8 +187,13 @@ def model_U_ResNet50_Centerline_Localheight():
 
         # ------以上为ResNet50的部分
 
-        f1 = x4_take
-        f2 = x3_take
+        f1 = x4
+
+        #unpool
+        f1=Lambda(lambda x: tf.image.resize(x, (32,32)))(f1)
+
+        f2 = x3
+
         h1 = Concatenate()([f2, f1])
 
         h1 = layers.Conv2D(128, (1, 1),
@@ -213,7 +217,8 @@ def model_U_ResNet50_Centerline_Localheight():
                            padding='same',
                            name='up2_2')(h2)
 
-        h3 = Concatenate()([x1, UpSampling2D((2, 2))(h2)])
+        #unpool
+        h3 = Concatenate()([Lambda(lambda x: tf.image.resize(x, (128,128)))(x1), UpSampling2D((2, 2))(h2)])
 
         h3 = layers.Conv2D(32, (1, 1),
                            activation='relu',
@@ -224,7 +229,8 @@ def model_U_ResNet50_Centerline_Localheight():
                            padding='same',
                            name='up3_2')(h3)
 
-        h4_take = Concatenate()([x0, UpSampling2D((2, 2))(h3)])
+        #unpool
+        h4_take = Concatenate()([Lambda(lambda x: tf.image.resize(x, (256,256)))(x0), UpSampling2D((2, 2))(h3)])
 
         h4 = layers.Conv2D(32, (1, 1),
                            activation='relu',
@@ -268,7 +274,10 @@ def model_U_ResNet50_Centerline_Localheight():
                             name='up51_2')(h51)
 
         # ------ local height regression ------
-        b1 = Concatenate(name='agg_feat-1')([x4_take, h1])  # block_conv3, up1_2 # 32,32,630
+
+        #unpool
+        b1 = Concatenate(name='agg_feat-1')([Lambda(lambda x: tf.image.resize(x, (32,32)))(x4), h1])  # block_conv3, up1_2 # 32,32,630
+
         b1 = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
                                     activation='relu', name='agg_feat-2')(b1)  # 64,64,128
 
@@ -288,7 +297,7 @@ def model_U_ResNet50_Centerline_Localheight():
                                     activation='relu', name='regress-4-7')(o5)  # 512,512, 1
 
         # 创建模型
-        model = Model(inputs, [o1, o11, o5], name="'U-ResNet50-model-Localheight")
+        model = Model(inputs=inputs, outputs=[o1, o11, o5], name='U-ResNet50-model-Localheight')
 
         return model
 
