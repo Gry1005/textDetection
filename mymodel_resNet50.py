@@ -172,7 +172,7 @@ def model_U_ResNet50_Centerline_Localheight():
         # stage5
         x4 = convolutional_block(x3, f=3, filters=[512, 512, 2048], stage=5, block="a", s=2)
         x4 = identity_block(x4, f=3, filters=[512, 512, 2048], stage=5, block="b")
-        x4 = identity_block(x4, f=3, filters=[512, 512, 2048], stage=5, block="c")
+        x4_take = identity_block(x4, f=3, filters=[512, 512, 2048], stage=5, block="c")
 
         # 均值池化层
         x4 = AveragePooling2D(pool_size=(2, 2), padding="same")(x4)
@@ -187,7 +187,7 @@ def model_U_ResNet50_Centerline_Localheight():
 
         # ------以上为ResNet50的部分
 
-        f1 = x4
+        f1 = x4_take
 
         #unpool
         f1=Lambda(lambda x: tf.image.resize(x, (32,32)))(f1)
@@ -275,26 +275,21 @@ def model_U_ResNet50_Centerline_Localheight():
 
         # ------ local height regression ------
 
-        #unpool
-        b1 = Concatenate(name='agg_feat-1')([Lambda(lambda x: tf.image.resize(x, (32,32)))(x4), h1])  # block_conv3, up1_2 # 32,32,630
+        #change!!!!
+        o5 = Concatenate()([inputs, UpSampling2D((2, 2))(h41)])
+        o5 = layers.Conv2D(16, (1, 1),
+                            activation='relu',
+                            padding='same',
+                            name='up61_1')(o5)
 
-        b1 = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
-                                    activation='relu', name='agg_feat-2')(b1)  # 64,64,128
+        o5 = layers.Conv2D(2, (3, 3),
+                            activation='relu',
+                            padding='same',
+                            name='up61_2')(o5) #512,512,2
 
-        o5 = layers.Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same',
-                                    activation='relu', name='regress-4-1')(b1)  # 128,128, 32
-        o5 = layers.Conv2DTranspose(32, (3, 3), strides=(1, 1), padding='same',
-                                    activation='relu', name='regress-4-2')(o5)  # 128,128, 32
-        o5 = layers.Conv2DTranspose(16, (3, 3), strides=(2, 2), padding='same',
-                                    activation='relu', name='regress-4-3')(o5)  # 256,256, 8
-        o5 = layers.Conv2DTranspose(8, (3, 3), strides=(1, 1), padding='same',
-                                    activation='relu', name='regress-4-4')(o5)  # 256,256, 8
-        o5 = layers.Conv2DTranspose(4, (3, 3), strides=(2, 2), padding='same',
-                                    activation='relu', name='regress-4-5')(o5)  # 256,256, 8
-        o5 = layers.Conv2DTranspose(2, (3, 3), strides=(1, 1), padding='same',
-                                    activation='relu', name='regress-4-6')(o5)  # 512,512, 2
         o5 = layers.Conv2DTranspose(1, (3, 3), strides=(1, 1), padding='same',
                                     activation='relu', name='regress-4-7')(o5)  # 512,512, 1
+
 
         # 创建模型
         model = Model(inputs=inputs, outputs=[o1, o11, o5], name='U-ResNet50-model-Localheight')
