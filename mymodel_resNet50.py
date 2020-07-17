@@ -263,6 +263,7 @@ def model_U_ResNet50_Centerline_Localheight():
                             name='up41_2')(h41)
 
         h51 = Concatenate()([inputs, UpSampling2D((2, 2))(h41)])
+
         h51 = layers.Conv2D(16, (1, 1),
                             activation='relu',
                             padding='same',
@@ -276,19 +277,38 @@ def model_U_ResNet50_Centerline_Localheight():
         # ------ local height regression ------
 
         #change!!!!
-        o5 = Concatenate()([inputs, UpSampling2D((2, 2))(h41)])
+        o5 = layers.Conv2D(32, (1, 1),
+                            activation='relu',
+                            padding='same',
+                            name='up42_1')(h4_take)
+
+        o5 = layers.Conv2D(32, (3, 3),
+                            activation='relu',
+                            padding='same',
+                            name='up42_2')(o5)
+
+        o5 = Concatenate()([inputs, UpSampling2D((2, 2))(o5)])
+
         o5 = layers.Conv2D(16, (1, 1),
                             activation='relu',
                             padding='same',
-                            name='up61_1')(o5)
+                            name='up52_1')(o5)
+
+        #print(o5.shape)
 
         o5 = layers.Conv2D(2, (3, 3),
                             activation='relu',
                             padding='same',
-                            name='up61_2')(o5) #512,512,2
+                            name='up52_2')(o5) #512,512,2
 
-        o5 = layers.Conv2DTranspose(1, (3, 3), strides=(1, 1), padding='same',
-                                    activation='relu', name='regress-4-7')(o5)  # 512,512, 1
+        #print(o5.shape)
+
+        o5 = layers.Conv2D(1, (3, 3),
+                           activation='relu',
+                           padding='same',
+                           name='up52_3')(o5)  # 512,512,1
+
+        #print(o5.shape)
 
 
         # 创建模型

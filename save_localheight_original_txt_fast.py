@@ -36,17 +36,17 @@ from loss import weighted_categorical_crossentropy, mean_squared_error_mask
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
 
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
-map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
+map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/weinman19-maps/D0042-1070002.tiff')
-output_path='../mapW1_USGS_ResultsTxt/'
+output_path='../mapW1_OS_ResultsTxt/'
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
 saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-for map_path in map_images[0:5]:
+for map_path in map_images[1:6]:
 
     base_name = os.path.basename(map_path)
 
@@ -197,7 +197,7 @@ for map_path in map_images[0:5]:
         if len(centerPoints)==0:
             continue
 
-        localheight_result_o = np.zeros((maxi-mini+1, maxj-minj+1, 3), np.uint8)
+        localheight_result_o = np.zeros((maxi-mini+100, maxj-minj+100, 3), np.uint8)
 
         # 画圆
 
@@ -209,7 +209,7 @@ for map_path in map_images[0:5]:
                     cv2.circle(localheight_result_o, (j, i), localheight_map_o[i][j], (0, 0, 255), -1)
         '''
         for i,j in centerPoints:
-            cv2.circle(localheight_result_o, (j-minj, i-mini), localheight_map_o[i][j]*0.5, (0, 0, 255), -1)
+            cv2.circle(localheight_result_o, (j-minj+50, i-mini+50), localheight_map_o[i][j]*0.4, (0, 0, 255), -1)
 
         # 标记多边形边框
         img_gray = cv2.cvtColor(localheight_result_o, cv2.COLOR_BGR2GRAY)
@@ -225,9 +225,9 @@ for map_path in map_images[0:5]:
 
             # print(type(contours[0][i][0][0].item()))
             if i < len(contours[0]) - 1:
-                new_context = new_context + str(contours[0][i][0][0].item()+minj ) + ',' + str(contours[0][i][0][1].item()+mini ) + ','
+                new_context = new_context + str(contours[0][i][0][0].item()+minj-50 ) + ',' + str(contours[0][i][0][1].item()+mini-50 ) + ','
             else:
-                new_context = new_context + str(contours[0][i][0][0].item()+minj ) + ',' + str(contours[0][i][0][1].item()+mini)
+                new_context = new_context + str(contours[0][i][0][0].item()+minj-50 ) + ',' + str(contours[0][i][0][1].item()+mini-50)
 
         new_context = new_context + '\n'
 
