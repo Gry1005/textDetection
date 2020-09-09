@@ -36,17 +36,18 @@ from loss import weighted_categorical_crossentropy, mean_squared_error_mask
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
 
-map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
+map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/concat_out_text_space/*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/curved_z14_512/*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/weinman19-maps/D0042-1070002.tiff')
-output_path='../mapW1_OS_ResultsTxt/'
+output_path='../testOutput/'
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
 saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-for map_path in map_images[1:6]:
+for map_path in map_images[92:97]:
 
     base_name = os.path.basename(map_path)
 
@@ -208,8 +209,14 @@ for map_path in map_images[1:6]:
                     # if localheight_map_o[0][i][j] > 0:
                     cv2.circle(localheight_result_o, (j, i), localheight_map_o[i][j], (0, 0, 255), -1)
         '''
+        #show localheight
+        localheightList=[]
+
         for i,j in centerPoints:
             cv2.circle(localheight_result_o, (j-minj+50, i-mini+50), localheight_map_o[i][j]*0.4, (0, 0, 255), -1)
+            localheightList.append(round(localheight_map_o[i][j].item(),5))
+
+        print('localHeightList: ',localheightList)
 
         # 标记多边形边框
         img_gray = cv2.cvtColor(localheight_result_o, cv2.COLOR_BGR2GRAY)

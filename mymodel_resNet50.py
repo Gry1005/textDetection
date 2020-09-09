@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras import layers
-from keras.layers import Conv2D, BatchNormalization, Activation, Add
+from keras.layers import Conv2D, BatchNormalization, Activation, Add, Reshape
 from keras.layers import Input, ZeroPadding2D, MaxPooling2D, AveragePooling2D, Flatten, Dense, Concatenate,UpSampling2D, Lambda
 from keras.initializers import glorot_uniform
 from keras.models import Model
@@ -190,7 +190,8 @@ def model_U_ResNet50_Centerline_Localheight():
         f1 = x4_take
 
         #unpool
-        f1=Lambda(lambda x: tf.image.resize(x, (32,32)))(f1)
+        f1=Lambda(lambda x: tf.image.resize(x, (32,32),method="nearest"))(f1)
+        #f1=Reshape((32,32,-1))(f1)
 
         f2 = x3
 
@@ -218,7 +219,8 @@ def model_U_ResNet50_Centerline_Localheight():
                            name='up2_2')(h2)
 
         #unpool
-        h3 = Concatenate()([Lambda(lambda x: tf.image.resize(x, (128,128)))(x1), UpSampling2D((2, 2))(h2)])
+        h3 = Concatenate()([Lambda(lambda x: tf.image.resize(x, (128,128),method="nearest"))(x1), UpSampling2D((2, 2))(h2)])
+        #h3 = Concatenate()([x1, UpSampling2D((2, 2))(h2)])
 
         h3 = layers.Conv2D(32, (1, 1),
                            activation='relu',
@@ -230,7 +232,8 @@ def model_U_ResNet50_Centerline_Localheight():
                            name='up3_2')(h3)
 
         #unpool
-        h4_take = Concatenate()([Lambda(lambda x: tf.image.resize(x, (256,256)))(x0), UpSampling2D((2, 2))(h3)])
+        h4_take = Concatenate()([Lambda(lambda x: tf.image.resize(x, (256,256),method="nearest"))(x0), UpSampling2D((2, 2))(h3)])
+        #h4_take = Concatenate()([Reshape((256,256,-1))(x0), UpSampling2D((2, 2))(h3)])
 
         h4 = layers.Conv2D(32, (1, 1),
                            activation='relu',
@@ -277,36 +280,26 @@ def model_U_ResNet50_Centerline_Localheight():
         # ------ local height regression ------
 
         #change!!!!
-        o5 = layers.Conv2D(32, (1, 1),
-                            activation='relu',
-                            padding='same',
-                            name='up42_1')(h4_take)
+        b1 = Concatenate(name='agg_feat-1')([Lambda(lambda x: tf.image.resize(x, (32,32),method="nearest"))(x4_take), h1])
+        #b1 = Concatenate(name='agg_feat-1')([Reshape((32,32,-1))(x4_take), h1])  # block_conv3, up1_2 # 32,32,630
 
-        o5 = layers.Conv2D(32, (3, 3),
-                            activation='relu',
-                            padding='same',
-                            name='up42_2')(o5)
+        b1 = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='agg_feat-2')(b1)  # 64,64,128
 
-        o5 = Concatenate()([inputs, UpSampling2D((2, 2))(o5)])
-
-        o5 = layers.Conv2D(16, (1, 1),
-                            activation='relu',
-                            padding='same',
-                            name='up52_1')(o5)
-
-        #print(o5.shape)
-
-        o5 = layers.Conv2D(2, (3, 3),
-                            activation='relu',
-                            padding='same',
-                            name='up52_2')(o5) #512,512,2
-
-        #print(o5.shape)
-
-        o5 = layers.Conv2D(1, (3, 3),
-                           activation='relu',
-                           padding='same',
-                           name='up52_3')(o5)  # 512,512,1
+        o5 = layers.Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='regress-4-1')(b1)  # 128,128, 32
+        o5 = layers.Conv2DTranspose(32, (3, 3), strides=(1, 1), padding='same',
+                                    activation='relu', name='regress-4-2')(o5)  # 128,128, 32
+        o5 = layers.Conv2DTranspose(16, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='regress-4-3')(o5)  # 256,256, 8
+        o5 = layers.Conv2DTranspose(8, (3, 3), strides=(1, 1), padding='same',
+                                    activation='relu', name='regress-4-4')(o5)  # 256,256, 8
+        o5 = layers.Conv2DTranspose(4, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='regress-4-5')(o5)  # 256,256, 8
+        o5 = layers.Conv2DTranspose(2, (3, 3), strides=(1, 1), padding='same',
+                                    activation='relu', name='regress-4-6')(o5)  # 512,512, 2
+        o5 = layers.Conv2DTranspose(1, (3, 3), strides=(1, 1), padding='same',
+                                    activation='relu', name='regress-4-7')(o5)  # 512,512, 1
 
         #print(o5.shape)
 
