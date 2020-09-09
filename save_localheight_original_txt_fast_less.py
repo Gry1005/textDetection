@@ -1,5 +1,3 @@
-#not working
-
 import glob
 import cv2
 import math
@@ -39,17 +37,17 @@ from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
 
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
-map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/101201496_h3w3.jpg')
-output_path='../original_txt_nhTest/'
+map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/concat_out_text_space/*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/curved_z14_512/*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/weinman19-maps/D0042-1070002.tiff')
+output_path='../testOutput/'
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
 saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-
-for map_path in map_images[0:1]:
+for map_path in map_images[92:97]:
 
     base_name = os.path.basename(map_path)
 
@@ -73,7 +71,7 @@ for map_path in map_images[0:1]:
 
     localheight_map_o=np.zeros((height,width, 1), np.float64)
 
-    prob_map_o=np.zeros((height, width, 3), np.float64)
+    #prob_map_o=np.zeros((height, width, 3), np.float64)
 
     center_map_o=np.zeros((height, width, 2), np.float64)
 
@@ -123,10 +121,12 @@ for map_path in map_images[0:1]:
 
             for i in range(y0,y1):
                 for j in range(x0,x1):
+                    '''
                     if prob_map_o[i][j][0]==0 and prob_map_o[i][j][1]==0 and prob_map_o[i][j][2]==0:
                         prob_map_o[i][j][0]=prob_map_clip[0][i-y0][j-x0][0]
                         prob_map_o[i][j][1] = prob_map_clip[0][i - y0][j - x0][1]
                         prob_map_o[i][j][2] = prob_map_clip[0][i - y0][j - x0][2]
+                    '''
 
                     if center_map_o[i][j][0]==0 and center_map_o[i][j][1]==0:
                         center_map_o[i][j][0]=center_map_clip[0][i-y0][j-x0][0]
@@ -144,7 +144,7 @@ for map_path in map_images[0:1]:
 
     #print(localheight_map)
 
-    prob_map_o = (prob_map_o * 255).astype(np.uint8)
+    #prob_map_o = (prob_map_o * 255).astype(np.uint8)
 
     center_map_o = (center_map_o[:, :, 1] * 255).astype(np.uint8)
 
@@ -154,128 +154,96 @@ for map_path in map_images[0:1]:
 
     #print(num_c,connected_map)
 
+    #localheight_result_o=np.zeros((height, width, 3), np.uint8)
+
     #划分不同的centerline
     num_c, connected_map = cv2.connectedComponents(center_map_o)
 
     print('num_c:',num_c)
 
-    count=0
+    exist_k=set()
 
-    for k in range(1,num_c):
+    for i in range(0,height):
+        for j in range(0,width):
+            if connected_map[i][j] not in exist_k:
+                exist_k.add(connected_map[i][j])
+
+
+    print('all k:',len(exist_k))
+
+    count = 0
+
+    for k in exist_k:
 
         count+=1
+
         print('count:', count)
 
-        #储存点的坐标
-        dicx={}
+        centerPoints=[]
+
+        mini=float('inf')
+        minj=float('inf')
+        maxi=0
+        maxj=0
 
         for i in range(0, height):
             for j in range(0, width):
-                if connected_map[i][j]==k and localheight_map_o[i][j] > 0 and center_map_o[i][j] > 0 and prob_map_o[i][j][0] > 0:
-                    dicx[i]=[]
-                    dicx[i].append(j)
+                if connected_map[i][j]==k and localheight_map_o[i][j] > 0 and center_map_o[i][j] > 0:
+                    # if localheight_map_o[0][i][j] > 0:
+                    #cv2.circle(localheight_result_o, (j, i), localheight_map_o[i][j], (0, 0, 255), -1)
+                    mini=min(mini,i)
+                    maxi=max(maxi,i)
+                    minj=min(minj,j)
+                    maxj=max(maxj,j)
+                    centerPoints.append((i,j))
 
-        if(len(dicx))==0:
+        if len(centerPoints)==0:
             continue
 
-        #排序
-        for key in dicx.keys():
-            dicx[key]=sorted(dicx[key])
+        localheight_result_o = np.zeros((maxi-mini+100, maxj-minj+100, 3), np.uint8)
 
-        print(dicx)
-
-        #抽样
-        yvals = []
-        x = []
-
-        for key in dicx.keys():
-            for i in dicx[key]:
-                print('i: ',i,'key: ',key)
-                yvals.append(key)
-                x.append(i)
-
+        # 画圆
 
         '''
-        centerPoints=[]
-
-        #print('x:',x)
-        #print('yvals:',yvals)
-        
-       
-        for i in range(0,len(x)):
-            centerPoints.append([yvals[i],x[i]])
-
-        centerPoints = np.array([centerPoints], dtype=np.int32)
-
-        cv2.polylines(map_img, centerPoints, False, (0, 0, 255), 2)
-
-        cv2.imshow('centerline',map_img)
-
-        cv2.waitKey()
+        for i in range(0, height):
+            for j in range(0, width):
+                if connected_map[i][j]==k and localheight_map_o[i][j] > 0 and center_map_o[i][j] > 0 and prob_map_o[i][j][0] > 0:
+                    # if localheight_map_o[0][i][j] > 0:
+                    cv2.circle(localheight_result_o, (j, i), localheight_map_o[i][j], (0, 0, 255), -1)
         '''
+        #show localheight
+        localheightList=[]
 
+        for i,j in centerPoints:
+            cv2.circle(localheight_result_o, (j-minj+50, i-mini+50), localheight_map_o[i][j]*0.4, (0, 0, 255), -1)
+            localheightList.append(round(localheight_map_o[i][j].item(),5))
 
-        poly1=[]
+        print('localHeightList: ',localheightList)
 
-        for i in range(0,len(x)):
+        # 标记多边形边框
+        img_gray = cv2.cvtColor(localheight_result_o, cv2.COLOR_BGR2GRAY)
 
-            shift=localheight_map_o[int(yvals[i])][int(x[i])]
-
-            if i<len(x)-1:
-                vy=yvals[i+1]-yvals[i]
-                vx=x[i+1]-x[i]
-                sxy = math.sqrt(vy * vy + vx * vx)
-                x1 = x[i] - shift * (vy / sxy)
-                y1 = yvals[i] + shift * (vx / sxy)
-                poly1.append([x1, y1])
-            else:
-                vy = yvals[i] - yvals[i-1]
-                vx = x[i] - x[i-1]
-                sxy = math.sqrt(vy * vy + vx * vx)
-                x1 = x[i] - shift * (vy / sxy)
-                y1 = yvals[i] + shift * (vx / sxy)
-                poly1.append([x1, y1])
-
-        for j in range(0,len(x)):
-            i = len(x) - 1 - j
-            shift=localheight_map_o[int(yvals[i])][int(x[i])]
-            # print("i:",i)
-            if i < len(x) - 1:
-                vy = yvals[i + 1] - yvals[i]
-                vx = x[i + 1] - x[i]
-                sxy = math.sqrt(vy * vy + vx * vx)
-                x2 = x[i] + shift * (vy / sxy)
-                y2 = yvals[i] - shift * (vx / sxy)
-                poly1.append([x2, y2])
-            else:
-                vy = yvals[i] - yvals[i-1]
-                vx = x[i] - x[i-1]
-                sxy = math.sqrt(vy * vy + vx * vx)
-                x2 = x[i] + shift * (vy / sxy)
-                y2 = yvals[i] - shift * (vx / sxy)
-                poly1.append([x2, y2])
-
-
+        contours, hierarchy = cv2.findContours(img_gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         new_context = ''
 
-        if len(poly1) == 0:
+        if len(contours) == 0:
             continue
 
-        for i in range(0, len(poly1)):
+        for i in range(0, len(contours[0])):
 
             # print(type(contours[0][i][0][0].item()))
-            if i < len(poly1) - 1:
-                new_context = new_context + str(poly1[i][0].item() ) + ',' + str(poly1[i][1].item() ) + ','
+            if i < len(contours[0]) - 1:
+                new_context = new_context + str(contours[0][i][0][0].item()+minj-50 ) + ',' + str(contours[0][i][0][1].item()+mini-50 ) + ','
             else:
-                new_context = new_context + str(poly1[i][0].item() ) + ',' + str(poly1[i][1].item())
+                new_context = new_context + str(contours[0][i][0][0].item()+minj-50 ) + ',' + str(contours[0][i][0][1].item()+mini-50)
 
         new_context = new_context + '\n'
 
         f.writelines(new_context)
 
 
-    cv2.imwrite(output_path+'prob_' + base_name[0:len(base_name) - 4] + '.jpg', prob_map_o)
+    #cv2.imwrite(output_path+'prob_' + base_name[0:len(base_name) - 4] + '.jpg', prob_map_o)
     cv2.imwrite(output_path+'cent_' + base_name[0:len(base_name) - 4] + '.jpg', center_map_o)
     cv2.imwrite(output_path+'localheight_map_' + base_name[0:len(base_name) - 4] + '.jpg', localheight_map_o)
     #cv2.imwrite('../original_os_test_txt/localheight_' + base_name, map_img)
@@ -298,13 +266,13 @@ for map_path in map_images[0:1]:
 
         for i in range(0,len(polyStr)):
             if i%2==0:
-                poly.append([float(polyStr[i]),float(polyStr[i+1])])
+                poly.append([int(polyStr[i]),int(polyStr[i+1])])
 
         polyList.append(poly)
 
     print('all: ',len(polyList))
 
-    txt_pixel_result=np.zeros((height, width, 3), np.uint8)
+    #txt_pixel_result=np.zeros((height, width, 3), np.uint8)
 
     for i in range(0,len(polyList)):
 
@@ -312,12 +280,12 @@ for map_path in map_images[0:1]:
 
         cv2.polylines(map_img, polyPoints, True, (0, 0, 255), 1)
 
-        cv2.fillPoly(txt_pixel_result, polyPoints, (0, 0, 255))
+        #cv2.fillPoly(txt_pixel_result, polyPoints, (0, 0, 255))
 
         print('i: ',i)
 
     cv2.imwrite(output_path+'parse_result_'+base_name[0:len(base_name) - 4] + '.jpg',map_img)
-    cv2.imwrite(output_path+'txt_pixel_result_' + base_name[0:len(base_name) - 4] + '.jpg', txt_pixel_result)
+    #cv2.imwrite(output_path+'txt_pixel_result_' + base_name[0:len(base_name) - 4] + '.jpg', txt_pixel_result)
 
 
 
