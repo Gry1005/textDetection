@@ -11,7 +11,7 @@ import tensorflow as tf
 print(tf.__file__)
 print(tf.__version__)
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 import keras
 from keras.models import load_model
 from keras.models import Sequential
@@ -36,21 +36,23 @@ from loss import weighted_categorical_crossentropy, mean_squared_error_mask
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
 
-map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
+map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
 
-# saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
+#saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
+saved_weights = '../weights/dynamic_z16Less_20_80_Grey_fontsW_IA_nooverlap_70_w1_finetune_model_bsize8_w1_spe200_ep80.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
+
+outputdir='../dynamic_z16Less_20_80_Grey_fontsW_IA_nooverlap_e150/'
 
 idx = 0
 all_boxes = []
 all_confs = []
 sin_list = []
 cos_list = []
-for map_path in map_images[0:20]:
+for map_path in map_images[0:30]:
     print(map_path)
     base_name = os.path.basename(map_path)
 
@@ -58,6 +60,10 @@ for map_path in map_images[0:20]:
     map_img = cv2.resize(map_img, (512, 512))
 
     in_map_img = map_img / 255.
+
+    #cv2.imshow('in',in_map_img)
+    #cv2.waitKey()
+
     img = np.expand_dims(in_map_img, axis=0)
     if saved_weights.split('_')[3] == '21':
         out = model.predict([img, np.expand_dims(np.indices((64, 64)).transpose(1, 2, 0), axis=0)])
@@ -92,7 +98,7 @@ for map_path in map_images[0:20]:
         for j in range(0, 512):
             #if (localheight_map[0][i][j] > 0 ) and center_map[i][j]>0 and prob_map[i][j][0]>0:
             if localheight_map[0][i][j] > 0:
-                cv2.circle(localheight_result, (j, i), localheight_map[0][i][j], (0, 0, 255), -1)
+                cv2.circle(localheight_result, (j, i), localheight_map[0][i][j]*0.4, (0, 0, 255), -1)
 
     # 标记多边形边框
     img_gray = cv2.cvtColor(localheight_result, cv2.COLOR_BGR2GRAY)
@@ -103,11 +109,11 @@ for map_path in map_images[0:20]:
 
     localheight_map = (localheight_map[0]*255).astype(np.uint8)
 
-    cv2.imwrite('../mapW1Results/prob_' + base_name, prob_map)
-    cv2.imwrite('../mapW1Results/cent_' + base_name, center_map)
-    cv2.imwrite('../mapW1Results/localheight_map_' + base_name, localheight_map)
-    cv2.imwrite('../mapW1Results/localheight_' + base_name, map_img)
-    cv2.imwrite('../mapW1Results/localheight_result_' + base_name, localheight_result)
+    cv2.imwrite(outputdir+'prob_' + base_name, prob_map)
+    cv2.imwrite(outputdir+'cent_' + base_name, center_map)
+    cv2.imwrite(outputdir+'localheight_map_' + base_name, localheight_map)
+    cv2.imwrite(outputdir+'localheight_' + base_name, map_img)
+    cv2.imwrite(outputdir+'localheight_result_' + base_name, localheight_result)
 
 
 

@@ -36,17 +36,17 @@ from loss import weighted_categorical_crossentropy, mean_squared_error_mask
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
 
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
-map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
+map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/weinman19-maps/D0042-1070002.tiff')
-output_path='../mapW1_USGS_ResultsTxt/'
+output_path='../dynamic_origin_zt_50/'
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
+saved_weights = '../weights/dynamic_origin2_z16_40_w1e160_finetune_model_bsize8_w1_spe200_ep10.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-for map_path in map_images[0:20]:
+for map_path in map_images[0:10]:
 
     base_name = os.path.basename(map_path)
 

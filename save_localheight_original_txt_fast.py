@@ -41,13 +41,13 @@ map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextAre
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/concat_out_text_space/*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/curved_z14_512/*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/weinman19-maps/D0042-1070002.tiff')
-output_path='../testOutput/'
+output_path='../dynamic_OS_USGS_20_80_Grey_nooverlap_0_w1_finetune_model_bsize8_w1_spe200_ep60_cut/'
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
+saved_weights = '../weights/dynamic_OS_USGS_20_80_Grey_nooverlap_0_w1_finetune_model_bsize8_w1_spe200_ep60.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-for map_path in map_images[92:97]:
+for map_path in map_images[0:14]:
 
     base_name = os.path.basename(map_path)
 
@@ -61,6 +61,8 @@ for map_path in map_images[92:97]:
     base_name = os.path.basename(map_path)
 
     map_img = cv2.imread(map_path)
+
+    #print(map_img.shape)
 
     width=map_img.shape[1] #dimension2
     height=map_img.shape[0] #dimension1
@@ -106,6 +108,11 @@ for map_path in map_images[92:97]:
 
             img_clip=in_map_img[y0:y1,x0:x1]
 
+            #img_clip = cv2.resize(img_clip, (512, 512))
+
+            #cv2.imshow('img_clip',img_clip)
+            #cv2.waitKey()
+
             img_clip = np.expand_dims(img_clip, axis=0)
 
             if saved_weights.split('_')[3] == '21':
@@ -119,23 +126,34 @@ for map_path in map_images[92:97]:
 
             localheight_map_clip = out[2]
 
+            #prob_clip_out=(prob_map_clip[0]*255).astype(np.uint8)
+
+            #center_clip_out=(center_map_clip[0][:,:,1]*255).astype(np.uint8)
+
+            #localheight_clip_out=(localheight_map_clip[0]*255).astype(np.uint8)
+
+            #cv2.imshow('prob_map_clip',prob_clip_out)
+            #cv2.imshow('center_clip', center_clip_out)
+            #cv2.imshow('localheight_clip', localheight_clip_out)
+            #cv2.waitKey()
+
             for i in range(y0,y1):
                 for j in range(x0,x1):
-                    if prob_map_o[i][j][0]==0 and prob_map_o[i][j][1]==0 and prob_map_o[i][j][2]==0:
-                        prob_map_o[i][j][0]=prob_map_clip[0][i-y0][j-x0][0]
-                        prob_map_o[i][j][1] = prob_map_clip[0][i - y0][j - x0][1]
-                        prob_map_o[i][j][2] = prob_map_clip[0][i - y0][j - x0][2]
+                    #if prob_map_o[i][j][0]==0 and prob_map_o[i][j][1]==0 and prob_map_o[i][j][2]==0:
+                    prob_map_o[i][j][0] = prob_map_clip[0][i-y0][j-x0][0]
+                    prob_map_o[i][j][1] = prob_map_clip[0][i - y0][j - x0][1]
+                    prob_map_o[i][j][2] = prob_map_clip[0][i - y0][j - x0][2]
 
-                    if center_map_o[i][j][0]==0 and center_map_o[i][j][1]==0:
-                        center_map_o[i][j][0]=center_map_clip[0][i-y0][j-x0][0]
-                        center_map_o[i][j][1] = center_map_clip[0][i - y0][j - x0][1]
+                    #if center_map_o[i][j][0]==0 and center_map_o[i][j][1]==0:
+                    center_map_o[i][j][0] = center_map_clip[0][i-y0][j-x0][0]
+                    center_map_o[i][j][1] = center_map_clip[0][i - y0][j - x0][1]
 
-                    if localheight_map_o[i][j]==0:
-                        localheight_map_o[i][j]=localheight_map_clip[0][i-y0][j-x0]
+                    #if localheight_map_o[i][j]==0:
+                    localheight_map_o[i][j] = localheight_map_clip[0][i-y0][j-x0]
 
-            x=x+500
+            x=x+511
 
-        y=y+500
+        y=y+511
 
 
     #localheight_map=(localheight_map*math.sqrt(2*512*512))
