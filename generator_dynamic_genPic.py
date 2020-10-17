@@ -142,11 +142,10 @@ def zk_addToMap(img_bg, text_layer, p):
 class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
     # image_root_path : map and mask images dir
     # list_path points to the file-list of train/val/test split
-    def __init__(self, image_root_path,fonts_path, GB_path, batch_size=128, seed=1234, mode='training', border_percent=0.15,overlap=True):
+    def __init__(self, image_root_path,fonts_path, GB_path, batch_size=128, seed=1234, mode='training', border_percent=0.15):
 
         self.fonts_path=fonts_path
         self.GB_path=GB_path
-        self.overlap=overlap
 
         img_path_list = glob.glob(image_root_path + '/*.jpg')
 
@@ -291,12 +290,13 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                 # font specification
                 font_face = fonts[random.randint(0, len(fonts) - 1)]
 
+                # font_size加入比较大的字体(100,150)
                 font_size = random.randint(10, 80)
-                #font_size2 = random.randint(100, 150)
+                font_size2 = random.randint(100, 150)
 
-                #r = random.randint(0, 9)
-                #if r == 6:
-                    #font_size = font_size2
+                r = random.randint(0, 9)
+                if r == 6:
+                    font_size = font_size2
 
                 ro = random.randint(-90, 90)
                 fcolor = random.randint(0, 128) * np.ones((3))
@@ -358,8 +358,7 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                             and_area = np.sum(
                                 np.float32(
                                     np.greater(masked_and, 10)))  # use and_are to check if masked_and has overlap area
-
-                            if (not self.overlap) and and_area > 1.0:
+                            if and_area > 1.0:
                                 successFlag = False
                                 break
                             elif x1 > H or x2 > H or x3 > H or x4 > H or y1 > W or y2 > W or y3 > W or y4 > W:  # not exceed the boundary
@@ -388,6 +387,19 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
             #PIL转换为CV2
             subset_X_2.append(cv2.cvtColor(np.asarray(img_bg_pil.convert('RGB')),cv2.COLOR_RGB2BGR))
             subset_Y.append(text_lis)
+
+            #图片存储
+
+            img_res=cv2.cvtColor(np.asarray(img_bg_pil.convert('RGB')),cv2.COLOR_RGB2BGR).copy()
+
+            for box in text_lis:
+                box=[[box[0],box[1]],[box[2],box[3]],[box[4],box[5]],[box[6],box[7]]]
+                polyPoints = np.array([box], dtype=np.int32)
+
+                cv2.polylines(img_res, polyPoints, True, (0, 0, 255), 1)
+
+            print(os.path.basename(patch_path))
+            cv2.imwrite('../dynamicPics/'+os.path.basename(patch_path),img_res)
 
             #cnt += 1
             #if cnt == 20:

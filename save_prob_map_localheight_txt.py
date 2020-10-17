@@ -38,8 +38,10 @@ from mymodel import model_U_VGG_Centerline_Localheight
 
 map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
 
+outputdir='../dynamic_origin_120_2/'
+
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
+saved_weights = '../weights/dynamic_origin_80_z16_w1e120_finetune_model_bsize8_w1_spe200_ep40.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
@@ -48,7 +50,8 @@ all_boxes = []
 all_confs = []
 sin_list = []
 cos_list = []
-for map_path in map_images[0:10]:
+
+for map_path in map_images[0:20]:
     print(map_path)
     base_name = os.path.basename(map_path)
 
@@ -78,7 +81,7 @@ for map_path in map_images[0:10]:
     localheight_map = out[2]
 
 
-    localheight_result = np.zeros((512, 512, 3), np.uint8)
+    localheight_result2 = np.zeros((512, 512, 3), np.uint8)
 
     #map_zero=np.zeros((512, 512, 3), np.uint8)
 
@@ -94,20 +97,25 @@ for map_path in map_images[0:10]:
 
     #print(num_c,connected_map)
 
-    txt_name='../mapW1ResultsTxt/' + base_name[0:len(base_name)-4]+'.txt'
+    txt_name=outputdir + base_name[0:len(base_name)-4]+'.txt'
 
     f=open(txt_name,'w+')
 
     for k in range(1,num_c):
+
+        localheight_result = np.zeros((512, 512, 3), np.uint8)
+
         # 画圆
         for i in range(0, 512):
             for j in range(0, 512):
                 if connected_map[i][j]==k and localheight_map[0][i][j] > 0 and center_map[i][j] > 0 and prob_map[i][j][0] > 0:
-                    cv2.circle(localheight_result, (j, i), localheight_map[0][i][j], (0, 0, 255), -1)
+                    print(localheight_map[0][i][j])
+                    cv2.circle(localheight_result, (j, i), localheight_map[0][i][j]*0.4, (0, 0, 255), -1)
+                    cv2.circle(localheight_result2, (j, i), localheight_map[0][i][j] * 0.4, (0, 0, 255), -1)
 
-        #cv2.imshow('localheight_result',localheight_result)
+        cv2.imshow('localheight_result',localheight_result)
 
-        #cv2.waitKey()
+        cv2.waitKey()
 
         # 标记多边形边框
         img_gray = cv2.cvtColor(localheight_result, cv2.COLOR_BGR2GRAY)
@@ -120,7 +128,7 @@ for map_path in map_images[0:10]:
 
         #cv2.fillPoly(img=map_img, pts=contours[0], color=(255, 0, 255))
 
-        #print(contours[0])
+        print('contours:',contours)
 
         new_context=''
 
@@ -140,8 +148,6 @@ for map_path in map_images[0:10]:
 
         f.writelines(new_context)
 
-        localheight_result = np.zeros((512, 512, 3), np.uint8)
-
 
         #解析txt
 
@@ -157,9 +163,9 @@ for map_path in map_images[0:10]:
 
         polyPoints = np.array([polyPoints], dtype=np.int32)
 
-        cv2.polylines(map_img_original, polyPoints, True, (0, 255, 0), 1)
+        cv2.polylines(map_img_original, polyPoints, True, (0, 0, 255), 1)
 
-        cv2.imshow("map_img_original",map_img_original)
+        #cv2.imshow("map_img_original",map_img_original)
 
         cv2.waitKey()
         
@@ -169,11 +175,11 @@ for map_path in map_images[0:10]:
 
     localheight_map = (localheight_map[0]*255).astype(np.uint8)
 
-    cv2.imwrite('../mapW1ResultsTxt/prob_' + base_name, prob_map)
-    cv2.imwrite('../mapW1ResultsTxt/cent_' + base_name, center_map)
-    cv2.imwrite('../mapW1ResultsTxt/localheight_map_' + base_name, localheight_map)
-    cv2.imwrite('../mapW1ResultsTxt/localheight_' + base_name, map_img)
-    #cv2.imwrite('../mapW1ResultsTxt/localheight_result_' + base_name, localheight_result)
+    cv2.imwrite(outputdir+'prob_' + base_name, prob_map)
+    cv2.imwrite(outputdir+'center_' + base_name, center_map)
+    cv2.imwrite(outputdir+'localheight_' + base_name, localheight_map)
+    cv2.imwrite(outputdir+'parse_' + base_name, map_img_original)
+    cv2.imwrite(outputdir+'localheightResult_' + base_name, localheight_result2)
 
 
 

@@ -10,7 +10,15 @@ from matplotlib import pyplot as plt
 from matplotlib import patches
 from matplotlib import text as mtext
 from matplotlib import font_manager
+import matplotlib as mpl
 import re
+import warnings
+
+#解决部分字体不识别文字
+warnings.filterwarnings(action='error',category=RuntimeWarning)
+
+mpl.rcParams['font.sans-serif'] = ['SimHei']
+mpl.rcParams['font.family'] = ['SimHei']
 
 
 # Notes for inserting text on images:
@@ -142,11 +150,14 @@ def zk_addToMap(img_bg, text_layer, p):
 class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
     # image_root_path : map and mask images dir
     # list_path points to the file-list of train/val/test split
-    def __init__(self, image_root_path,fonts_path, GB_path, batch_size=128, seed=1234, mode='training', border_percent=0.15,overlap=True):
+    def __init__(self, image_root_path,fonts_path, GB_path, batch_size=128, seed=1234, mode='training', border_percent=0.15,overlap=True,fontSizeRange=[20,80],grey=[0,128],showPicDir='No'):
 
         self.fonts_path=fonts_path
         self.GB_path=GB_path
         self.overlap=overlap
+        self.fontSizeRange=fontSizeRange
+        self.grey=grey
+        self.showPicDir=showPicDir
 
         img_path_list = glob.glob(image_root_path + '/*.jpg')
 
@@ -242,16 +253,22 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
 
         # load the words
         word_set = set()
-        geoname_f = open(self.GB_path, "r", encoding='utf-8')
-        for line in geoname_f:
-            cols = re.split(r'\t+', line.rstrip('\t'))
-            words = cols[1].split(' ')
-            for w in words:
-                word_set.add(w.strip('()'))
-        geoname_f.close()
+
+        text_pathList = glob.glob(self.GB_path + '*.txt')
+
+        for text_path in text_pathList:
+            geoname_f = open(text_path, "r", encoding='utf-8')
+            for line in geoname_f:
+                if line!="":
+                    word = line.strip()
+
+                    word_set.add(word)
+            geoname_f.close()
+
         set_len = len(word_set)
-        #print(len(word_set), ' words in total')
-        #print('eg:', list(word_set)[0:10])
+        if self.showPicDir !='No':
+            print(len(word_set), ' words in total')
+            print('eg:', list(word_set)[0:10])
 
         # process
         word_set = list(word_set)
@@ -288,10 +305,8 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                     text = word_set[random.randint(1, words_size - 1)].strip()
                     text = re.sub('[^0-9A-Za-z]+', '', text)  # remove symbols
 
-                # font specification
-                font_face = fonts[random.randint(0, len(fonts) - 1)]
 
-                font_size = random.randint(10, 80)
+                font_size = random.randint(self.fontSizeRange[0], self.fontSizeRange[1])
                 #font_size2 = random.randint(100, 150)
 
                 #r = random.randint(0, 9)
@@ -299,7 +314,7 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                     #font_size = font_size2
 
                 ro = random.randint(-90, 90)
-                fcolor = random.randint(0, 128) * np.ones((3))
+                fcolor = random.randint(self.grey[0], self.grey[1]) * np.ones((3))
 
                 # some variations to the original input text
                 if np.random.randint(0, 2):  # 50% chance to capitalize the text
@@ -315,8 +330,21 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                     if insert_type == 2:  # 1/3 of the chance to insert FIVE blank space bween chars
                         text = "     ".join(text)
 
+                # font specification
+                font_face = fonts[random.randint(0, len(fonts) - 1)]
+
                 # print text
-                text_layer, af_pts = geneText(text, font_face, font_size, font_color=fcolor, rot_angle=ro, style=1)
+
+                try:
+                    text_layer, af_pts = geneText(text, font_face, font_size, font_color=fcolor, rot_angle=ro,style=1)
+
+                except RuntimeWarning:
+                    print('wrong font-face:',font_face)
+                    print('wrong text:',text)
+                    plt.close("all")
+                    text_layer=0
+
+
 
                 # text region
 
@@ -387,6 +415,7 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
 
             #PIL转换为CV2
             subset_X_2.append(cv2.cvtColor(np.asarray(img_bg_pil.convert('RGB')),cv2.COLOR_RGB2BGR))
+
             subset_Y.append(text_lis)
 
             #cnt += 1
@@ -396,8 +425,14 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
         for image, text_lis in zip(subset_X_2, subset_Y):
 
             x = image
+
             o_height, o_width = x.shape[0], x.shape[1]
             x = cv2.resize(x, (std_size, std_size))
+
+            # 画图展示:
+            img_res = None
+            if self.showPicDir != 'No':
+                img_res = x.copy()
 
             h_sca = std_size * 1. / o_height
             w_sca = std_size * 1. / o_width
@@ -446,6 +481,12 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                 y4 = float(y4) * h_sca
                 x_c = 0.5 * (x1 + x3)
                 y_c = 0.5 * (y1 + y3)
+
+                # 画图
+                if self.showPicDir!='No':
+                    box = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+                    polyPoints = np.array([box], dtype=np.int32)
+                    cv2.polylines(img_res, polyPoints, True, (0, 0, 255), 1)
 
                 # create mask image
                 points = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
@@ -545,6 +586,10 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                                                    axis=-1)
 
                 inside_Y_regress[this_bbox_mask > 0] = this_bbox_regress[this_bbox_mask > 0]
+
+            # 保存图片
+            if self.showPicDir!='No':
+                cv2.imwrite(self.showPicDir + str(random.randint(0, 1000)) + '.jpg', img_res)
 
             prob_img[prob_img > 0] = 1
             prob_img = prob_img.astype(np.float32)

@@ -30,7 +30,7 @@ from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG, model_U_VGG_Centerline_Localheight
 
 
-from generator_dynamic import SynthMap_DataGenerator_Centerline_Localheight_Dynamic
+from generator_dynamic_v2 import SynthMap_DataGenerator_Centerline_Localheight_Dynamic
 
 
 #saved_weights = '../weights/synthText_model_bsize8_w1_spe100_ep233.hdf5'
@@ -39,13 +39,13 @@ model = model_U_VGG_Centerline_Localheight()
 
 #image_root_path = '/data/zekunl/synthMap_application/generate_data/concat_out_text_space/'
 image_root_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/backGround/*/'
-fonts_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/fonts/'
-GB_path="E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/GB.txt"
+fonts_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/fontsW/*/'
+GB_path="E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/IA_placenames/"
 
 prefix = 'map_dynamic_'
 
-nb_epochs = 50
-steps_per_epoch = 200
+nb_epochs = 5
+steps_per_epoch = 5
 weight_ratio = 1.
 
 
@@ -64,7 +64,7 @@ model_ckpt = keras.callbacks.ModelCheckpoint(ckpt_filepath,period = 2)
 myvalidation_steps = 5
 
 
-train_datagen = SynthMap_DataGenerator_Centerline_Localheight_Dynamic(image_root_path = image_root_path, fonts_path=fonts_path,GB_path=GB_path,batch_size= 8,  seed = 3333, mode = 'training',overlap=True)
+train_datagen = SynthMap_DataGenerator_Centerline_Localheight_Dynamic(image_root_path = image_root_path, fonts_path=fonts_path,GB_path=GB_path,batch_size= 8,  seed = 3333, mode = 'training',overlap=False,showPicDir='../dynamicPics/')
 
 #output: t/nt, centerline,
 #model.compile(adam, loss = [weighted_categorical_crossentropy(weights1),weighted_categorical_crossentropy(weights2)  ,regress_loss2,regress_loss1,regress_loss2])
