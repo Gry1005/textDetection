@@ -8,5 +8,5 @@ import random
 
 #print(localheight_img)
 
-for i in range(0,3):
-    print(i)
+s="  "
+print(s=='')

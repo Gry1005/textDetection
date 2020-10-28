@@ -30,7 +30,7 @@ from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG, model_U_VGG_Centerline_Localheight
 
 
-from generator_dynamic_v2 import SynthMap_DataGenerator_Centerline_Localheight_Dynamic
+from generator_dynamic_v2_GB import SynthMap_DataGenerator_Centerline_Localheight_Dynamic
 
 
 #saved_weights = '../weights/synthText_model_bsize8_w1_spe100_ep233.hdf5'
@@ -38,9 +38,9 @@ model = model_U_VGG_Centerline_Localheight()
 #model.load_weights(saved_weights)
 
 #image_root_path = '/data/zekunl/synthMap_application/generate_data/concat_out_text_space/'
-image_root_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/backGround/*/'
-fonts_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/fontsW/*/'
-GB_path="E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/IA_placenames/"
+image_root_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/backGround3/*/'
+fonts_path = 'E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/fonts/'
+GB_path="E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset4/GB.txt"
 
 prefix = 'map_dynamic_'
 
@@ -60,11 +60,11 @@ ith = prefix + 'bsize8_w1_spe'+str(steps_per_epoch)+'_ep' + str(nb_epochs)
 log_name = '../logs/'+ ith + '.log'
 csv_logger = keras.callbacks.CSVLogger(log_name)
 ckpt_filepath = '../weights/'+ prefix + 'finetune_map_model_bsize8_w1_spe'+str(steps_per_epoch)+'_ep{epoch:02d}.hdf5'
-model_ckpt = keras.callbacks.ModelCheckpoint(ckpt_filepath,period = 2)
+model_ckpt = keras.callbacks.ModelCheckpoint(ckpt_filepath,period = 10)
 myvalidation_steps = 5
 
 
-train_datagen = SynthMap_DataGenerator_Centerline_Localheight_Dynamic(image_root_path = image_root_path, fonts_path=fonts_path,GB_path=GB_path,batch_size= 8,  seed = 3333, mode = 'training',overlap=False,showPicDir='../dynamicPics/')
+train_datagen = SynthMap_DataGenerator_Centerline_Localheight_Dynamic(image_root_path = image_root_path, fonts_path=fonts_path,GB_path=GB_path,batch_size= 8,  seed = 3333, mode = 'training',overlap=True,showPicDir='../dynamicPics/')
 
 #output: t/nt, centerline,
 #model.compile(adam, loss = [weighted_categorical_crossentropy(weights1),weighted_categorical_crossentropy(weights2)  ,regress_loss2,regress_loss1,regress_loss2])

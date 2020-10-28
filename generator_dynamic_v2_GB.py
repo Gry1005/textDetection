@@ -159,6 +159,8 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
         self.grey=grey
         self.showPicDir=showPicDir
 
+        self.showPicCount=0
+
         img_path_list = glob.glob(image_root_path + '/*.jpg')
 
         # get the full path of map & maks files
@@ -253,24 +255,21 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
 
         # load the words
         word_set = set()
+        geoname_f = open(self.GB_path, "r", encoding='utf-8')
+        for line in geoname_f:
+            cols = re.split(r'\t+', line.rstrip('\t'))
+            words = cols[1].split(' ')
+            for w in words:
+                wFlag=False
+                for i in range(0,len(w)):
+                    if ('a'<=w[i]<='z') or ('A'<=w[i]<='Z') or ('0'<=w[i]<='9'):
+                        wFlag=True
+                        break
 
-        text_pathList = glob.glob(self.GB_path + '*.txt')
+                if wFlag:
+                    word_set.add(w.strip('()'))
 
-        for text_path in text_pathList:
-            geoname_f = open(text_path, "r", encoding='utf-8')
-            for line in geoname_f:
-                if line!="":
-                    word = line.strip()
-
-                    wFlag = False
-                    for i in range(0, len(word)):
-                        if ('a' <= word[i] <= 'z') or ('A' <= word[i] <= 'Z') or ('0' <= word[i] <= '9'):
-                            wFlag = True
-                            break
-                    if wFlag:
-                        word_set.add(word)
-
-            geoname_f.close()
+        geoname_f.close()
 
         set_len = len(word_set)
         if self.showPicDir !='No':
@@ -285,6 +284,9 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
         words_size = len(word_set)
         #cnt = 0  # process on #cnt images
         text_num_thresh = 10
+
+        if self.overlap:
+            text_num_thresh = 5
 
         for i, patch_path in enumerate(subset_X):
 
@@ -440,6 +442,7 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
             img_res = None
             if self.showPicDir != 'No':
                 img_res = x.copy()
+                info_f = open(self.showPicDir + str(self.showPicCount) + '.txt', 'w')
 
             h_sca = std_size * 1. / o_height
             w_sca = std_size * 1. / o_width
@@ -493,7 +496,8 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
                 if self.showPicDir!='No':
                     box = [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
                     polyPoints = np.array([box], dtype=np.int32)
-                    cv2.polylines(img_res, polyPoints, True, (0, 0, 255), 1)
+                    #cv2.polylines(img_res, polyPoints, True, (0, 0, 255), 1)
+                    info_f.write('%d,%d,%d,%d,%d,%d,%d,%d\n' % (x1, y1, x2, y2, x3, y3, x4, y4))
 
                 # create mask image
                 points = np.array([[x1, y1], [x2, y2], [x3, y3], [x4, y4]])
@@ -596,7 +600,21 @@ class SynthMap_DataGenerator_Centerline_Localheight_Dynamic(object):
 
             # 保存图片
             if self.showPicDir!='No':
-                cv2.imwrite(self.showPicDir + str(random.randint(0, 1000)) + '.jpg', img_res)
+                cv2.imwrite(self.showPicDir + str(self.showPicCount) + '.jpg', img_res)
+
+                prob_img1=prob_img.copy()
+                prob_img1[prob_img1 > 0] = 1
+                prob_img1=prob_img1 * 255
+                border_img1=border_img * 255
+                centerline_img1=centerline_img * 255
+
+                cv2.imwrite(self.showPicDir + str(self.showPicCount)+"_prob" + '.jpg', prob_img1)
+                cv2.imwrite(self.showPicDir + str(self.showPicCount) + "_border" + '.jpg', border_img1)
+                cv2.imwrite(self.showPicDir + str(self.showPicCount) + "_center" + '.jpg', centerline_img1)
+                cv2.imwrite(self.showPicDir + str(self.showPicCount) + "_localheight" + '.jpg', localheight_img)
+
+                print('PicCount:',self.showPicCount)
+                self.showPicCount+=1
 
             prob_img[prob_img > 0] = 1
             prob_img = prob_img.astype(np.float32)
