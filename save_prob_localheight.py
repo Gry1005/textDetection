@@ -41,11 +41,11 @@ map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextAre
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
 
 #saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/finetune_map_model_dynamicForStaticTrain_10_80_Grey_zkfonts_GB_overlap_w1_e0_bsize8_w1_spe200_ep50.hdf5'
+saved_weights = '../weights/dynamic_noPretrain_OSUsgs_40_Grey_fontsW_IA_nooverlap_w1_e0_finetune_model_bsize8_w1_spe200_ep50.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-outputdir='../dynamicForStaticTrain_10_80_Grey_zkfonts_GB_overlap_w1_e50/'
+outputdir='../dynamic_noPretrain_OSUsgs_40_Grey_fontsW_IA_nooverlap_w1_e50/'
 
 idx = 0
 all_boxes = []
