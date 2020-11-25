@@ -141,14 +141,20 @@ def model_U_ResNet50_Centerline_Localheight():
         inputs=X_input
 
         # 0填充
-        X = ZeroPadding2D((3, 3))(X_input)
+        #change!!!
+        #X = ZeroPadding2D((3, 3))(X_input)
+        X = ZeroPadding2D((4, 4))(X_input)
+
+        #print('X shape:',X.shape)
 
         # stage1
-        x0 = Conv2D(filters=64, kernel_size=(7, 7), strides=(2, 2), name="conv1",
-                   kernel_initializer=glorot_uniform(seed=0))(X)
+
+        x0 = Conv2D(filters=64, kernel_size=(7, 7), strides=(2, 2), name="conv1",kernel_initializer=glorot_uniform(seed=0))(X)
         x0 = BatchNormalization(axis=3, name="bn_conv1")(x0)
         x0 = Activation("relu")(x0)
         x0 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2))(x0)
+
+        #print('x0 shape:',x0.shape)
 
         # stage2
         x1 = convolutional_block(x0, f=3, filters=[64, 64, 256], stage=2, block="a", s=1)
@@ -190,12 +196,15 @@ def model_U_ResNet50_Centerline_Localheight():
         f1 = x4_take
 
         #unpool
-        f1=Lambda(lambda x: tf.image.resize(x, (32,32),method="nearest"))(f1)
-        #f1=Reshape((32,32,-1))(f1)
+        #f1=Lambda(lambda x: tf.image.resize(x, (32,32),method="nearest"))(f1)
 
         f2 = x3
 
-        h1 = Concatenate()([f2, f1])
+        #deconv
+        f1_r = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='resize_h0')(f1)
+
+        h1 = Concatenate()([f2, f1_r])
 
         h1 = layers.Conv2D(128, (1, 1),
                            activation='relu',
@@ -207,7 +216,12 @@ def model_U_ResNet50_Centerline_Localheight():
                            padding='same',
                            name='up1_2')(h1)
 
-        h2 = Concatenate()([x2, UpSampling2D((2, 2))(h1)])
+        #deconv
+
+        h1_r = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
+                                      activation='relu', name='resize_h1')(h1)
+
+        h2 = Concatenate()([x2, h1_r])
 
         h2 = layers.Conv2D(64, (1, 1),
                            activation='relu',
@@ -219,8 +233,12 @@ def model_U_ResNet50_Centerline_Localheight():
                            name='up2_2')(h2)
 
         #unpool
-        h3 = Concatenate()([Lambda(lambda x: tf.image.resize(x, (128,128),method="nearest"))(x1), UpSampling2D((2, 2))(h2)])
-        #h3 = Concatenate()([x1, UpSampling2D((2, 2))(h2)])
+
+        #deconv
+        h2_r = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
+                                      activation='relu', name='resize_h2')(h2)
+
+        h3 = Concatenate()([x1, h2_r])
 
         h3 = layers.Conv2D(32, (1, 1),
                            activation='relu',
@@ -232,8 +250,8 @@ def model_U_ResNet50_Centerline_Localheight():
                            name='up3_2')(h3)
 
         #unpool
-        h4_take = Concatenate()([Lambda(lambda x: tf.image.resize(x, (256,256),method="nearest"))(x0), UpSampling2D((2, 2))(h3)])
-        #h4_take = Concatenate()([Reshape((256,256,-1))(x0), UpSampling2D((2, 2))(h3)])
+        h4_take=Concatenate()([x0, h3])
+
 
         h4 = layers.Conv2D(32, (1, 1),
                            activation='relu',
@@ -244,7 +262,14 @@ def model_U_ResNet50_Centerline_Localheight():
                            padding='same',
                            name='up4_2')(h4)
 
-        h5 = Concatenate()([inputs, UpSampling2D((2, 2))(h4)])
+        #h5 = Concatenate()([inputs, Lambda(lambda x: tf.image.resize(x, (512, 512), method="nearest"))(h4)])
+
+        #deconv
+        h4_r = layers.Conv2DTranspose(128, (3, 3), strides=(4, 4), padding='same',
+                                      activation='relu', name='resize_h4')(h4)
+
+        h5 = Concatenate()([inputs, h4_r])
+
         h5 = layers.Conv2D(16, (1, 1),
                            activation='relu',
                            padding='same',
@@ -255,6 +280,7 @@ def model_U_ResNet50_Centerline_Localheight():
                            activation='softmax',
                            padding='same',
                            name='up5_2')(h5)
+
         ################## output for centerline /other ###########
         h41 = layers.Conv2D(32, (1, 1),
                             activation='relu',
@@ -265,7 +291,12 @@ def model_U_ResNet50_Centerline_Localheight():
                             padding='same',
                             name='up41_2')(h41)
 
-        h51 = Concatenate()([inputs, UpSampling2D((2, 2))(h41)])
+        # deconv
+        h41_r = layers.Conv2DTranspose(128, (3, 3), strides=(4, 4), padding='same',
+                                      activation='relu', name='resize_h41')(h41)
+
+        h51 = Concatenate()([inputs, h41_r])
+
 
         h51 = layers.Conv2D(16, (1, 1),
                             activation='relu',
@@ -278,16 +309,30 @@ def model_U_ResNet50_Centerline_Localheight():
                             name='up51_2')(h51)
 
         # ------ local height regression ------
+        h52 = layers.Conv2D(16, (1, 1),
+                           activation='relu',
+                           padding='same',
+                           name='up52_1')(h51)
 
-        #change!!!!
-        b1 = Concatenate(name='agg_feat-1')([Lambda(lambda x: tf.image.resize(x, (32,32),method="nearest"))(x4_take), h1])
-        #b1 = Concatenate(name='agg_feat-1')([Reshape((32,32,-1))(x4_take), h1])  # block_conv3, up1_2 # 32,32,630
+        o5 = layers.Conv2D(1, (3, 3),
+                            activation='relu',
+                            padding='same',
+                            name='up52_2')(h52)
 
-        b1 = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
-                                    activation='relu', name='agg_feat-2')(b1)  # 64,64,128
+
+
+
+        '''
+        b1=x4_take
+        
+        o5 = layers.Conv2DTranspose(256, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='regress-4-0')(b1)  # 32,32
+
+        o5 = layers.Conv2DTranspose(128, (3, 3), strides=(2, 2), padding='same',
+                                    activation='relu', name='regress-4-01')(o5)  # 64,64
 
         o5 = layers.Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same',
-                                    activation='relu', name='regress-4-1')(b1)  # 128,128, 32
+                                    activation='relu', name='regress-4-1')(o5)  # 128,128, 32
         o5 = layers.Conv2DTranspose(32, (3, 3), strides=(1, 1), padding='same',
                                     activation='relu', name='regress-4-2')(o5)  # 128,128, 32
         o5 = layers.Conv2DTranspose(16, (3, 3), strides=(2, 2), padding='same',
@@ -300,8 +345,9 @@ def model_U_ResNet50_Centerline_Localheight():
                                     activation='relu', name='regress-4-6')(o5)  # 512,512, 2
         o5 = layers.Conv2DTranspose(1, (3, 3), strides=(1, 1), padding='same',
                                     activation='relu', name='regress-4-7')(o5)  # 512,512, 1
+        '''
 
-        #print(o5.shape)
+        #print('o5.shape:',o5.shape)
 
 
         # 创建模型

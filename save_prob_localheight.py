@@ -35,17 +35,19 @@ import glob
 from loss import weighted_categorical_crossentropy, mean_squared_error_mask
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
+from mymodel_resNet50 import model_U_ResNet50_Centerline_Localheight
 
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
 map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
 
-#saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/dynamic_noPretrain_OSUsgs_40_Grey_fontsW_IA_nooverlap_w1_e0_finetune_model_bsize8_w1_spe200_ep50.hdf5'
-model = model_U_VGG_Centerline_Localheight()
+
+saved_weights = '../weights/text_res50_w1e200_e160_finetune_map_model_bsize8_spe200_ep20.hdf5'
+#model = model_U_VGG_Centerline_Localheight()
+model = model_U_ResNet50_Centerline_Localheight()
 model.load_weights(saved_weights)
 
-outputdir='../dynamic_noPretrain_OSUsgs_40_Grey_fontsW_IA_nooverlap_w1_e50/'
+outputdir='../text_res50_w1e200_e180/'
 
 idx = 0
 all_boxes = []
@@ -98,6 +100,7 @@ for map_path in map_images[0:30]:
         for j in range(0, 512):
             #if (localheight_map[0][i][j] > 0 ) and center_map[i][j]>0 and prob_map[i][j][0]>0:
             if localheight_map[0][i][j] > 0:
+                #print('localheight:',localheight_map[0][i][j])
                 cv2.circle(localheight_result, (j, i), localheight_map[0][i][j]*0.4, (0, 0, 255), -1)
 
     # 标记多边形边框

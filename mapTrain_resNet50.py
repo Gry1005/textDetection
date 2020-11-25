@@ -61,7 +61,7 @@ ith = prefix + 'bsize8_w1_spe'+str(steps_per_epoch)+'_ep' + str(nb_epochs)
 log_name = '../logs/'+ ith + '.log'
 csv_logger = keras.callbacks.CSVLogger(log_name)
 ckpt_filepath = '../weights/'+ prefix + 'finetune_map_model_bsize8_w1_spe'+str(steps_per_epoch)+'_ep{epoch:02d}.hdf5'
-model_ckpt = keras.callbacks.ModelCheckpoint(ckpt_filepath,period = 2)
+model_ckpt = keras.callbacks.ModelCheckpoint(ckpt_filepath,period = 5)
 myvalidation_steps = 5
 
 

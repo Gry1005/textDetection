@@ -27,7 +27,7 @@ import glob
 import math
 from loss import weighted_categorical_crossentropy, mean_squared_error_mask, mean_absolute_error_localheight
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
-from mymodel import model_U_VGG, model_U_VGG_Centerline_Localheight
+from gryModel_v2 import model_U_VGG_Centerline_Localheight
 
 
 from generator import SynthMap_DataGenerator_Centerline_Localheight
