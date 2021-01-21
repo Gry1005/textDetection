@@ -35,23 +35,27 @@ import glob
 from loss import weighted_categorical_crossentropy, mean_squared_error_mask
 from loss import mean_absolute_error_mask, mean_absolute_percentage_error_mask
 from mymodel import model_U_VGG_Centerline_Localheight
+#from mymodel_v2 import model_U_VGG_Centerline_Localheight
 
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/[0-9]*.jpg')
 #map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/sub_maps_masks_grid1000/USGS*.jpg')
-#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/synthMap_curved_os_z16_768/*.jpg')
-map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/original_size_OS_USGS_map/historical-map-groundtruth-25/102903919/*.jpg')
+map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/OS_USGS_testset/*.jpg')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/large_text_test_imgs/test_imgs/*.png')
+#map_images = glob.glob('E:/Spatial Computing & Informatics Laboratory/CutTextArea/dataset/original_size_OS_USGS_map/historical-map-groundtruth-25/102903919/*.jpg')
 
 # saved_weights = 'weights/finetune_map_model_map_4_2_bsize8_w1_spe200_ep50.hdf5'
-saved_weights = '../weights/finetune_map_model_map_w1e50_bsize8_w1_spe200_ep50.hdf5'
+saved_weights = '../weights/concat_out_zkSetting_bigF_sChar_model1.0_w1e100_e0_finetune_model_bsize8_spe200_ep50.hdf5'
 model = model_U_VGG_Centerline_Localheight()
 model.load_weights(saved_weights)
+
+output_dir='../concat_out_zkSetting_bigF_sChar_model1.0_w1e50/'
 
 idx = 0
 all_boxes = []
 all_confs = []
 sin_list = []
 cos_list = []
-for map_path in map_images[0:1]:
+for map_path in map_images:
     print(map_path)
     base_name = os.path.basename(map_path)
 
@@ -154,22 +158,22 @@ for map_path in map_images[0:1]:
         for j in range(0, width):
             if localheight_map_o[i][j] > 0  and center_map_o[i][j]>0 and prob_map_o[i][j][0]>0:
             #if localheight_map_o[0][i][j] > 0:
-                cv2.circle(localheight_result_o, (j, i), localheight_map_o[i][j], (0, 0, 255), -1)
+                cv2.circle(localheight_result_o, (j, i), localheight_map_o[i][j]*0.4, (0, 0, 255), -1)
 
     # 标记多边形边框
     img_gray = cv2.cvtColor(localheight_result_o, cv2.COLOR_BGR2GRAY)
 
     contours, hierarchy = cv2.findContours(img_gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    cv2.drawContours(map_img, contours, -1, (255, 0, 255), 1)
+    cv2.drawContours(map_img, contours, -1, (255, 0, 255), 2)
 
     localheight_map = (localheight_map_o*255).astype(np.uint8)
 
-    cv2.imwrite('../original_os_test/prob_' + base_name, prob_map_o)
-    cv2.imwrite('../original_os_test/cent_' + base_name, center_map_o)
-    cv2.imwrite('../original_os_test/localheight_map_' + base_name, localheight_map_o)
-    cv2.imwrite('../original_os_test/localheight_' + base_name, map_img)
-    cv2.imwrite('../original_os_test/localheight_result_' + base_name, localheight_result_o)
+    cv2.imwrite(output_dir+'prob_' + base_name, prob_map_o)
+    cv2.imwrite(output_dir+'cent_' + base_name, center_map_o)
+    cv2.imwrite(output_dir+'localheight_map_' + base_name, localheight_map_o)
+    cv2.imwrite(output_dir+'localheight_' + base_name, map_img)
+    #cv2.imwrite('../original_os_test/localheight_result_' + base_name, localheight_result_o)
 
 
 
